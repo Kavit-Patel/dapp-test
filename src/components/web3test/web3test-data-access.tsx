@@ -61,21 +61,12 @@ export function useWeb3testProgram() {
         toast.error("Connect Wallet first !");
         return;
       }
-      // Generate a new Keypair for the mint
+
       const mint = Keypair.generate();
       console.log("Mint PublicKey:", mint.publicKey.toString());
 
-      // Get the associated token account
-      // const associatedTokenAccount = await getAssociatedTokenAddress(
-      //   mint.publicKey,
-      //   walletPublicKey
-      // );
-      // console.log("Associated Token Account:", associatedTokenAccount.toString());
-
-      // Fetch the recent blockhash
       const { blockhash } = await connection.getLatestBlockhash();
 
-      // Create the transaction
       const transaction = new Transaction({
         recentBlockhash: blockhash,
         feePayer: walletPublicKey,
@@ -102,31 +93,33 @@ export function useWeb3testProgram() {
           walletPublicKey, // Mint authority
           walletPublicKey // Freeze authority
         )
-        // createAssociatedTokenAccountInstruction(
-        //   walletPublicKey,
-        //   associatedTokenAccount,
-        //   walletPublicKey,
-        //   mint.publicKey
-        // ),
-        // createMintToInstruction(
-        //   mint.publicKey,
-        //   associatedTokenAccount,
-        //   walletPublicKey, // Mint authority
-        //   mintAmount
-        // )
       );
+      alert("works perfect till now ");
 
-      // Partially sign with the mint keypair
       transaction.partialSign(mint);
-
-      // Send the transaction
-      const signature = await walletAdapter.sendTransaction(
-        transaction,
-        connection,
+      if (!walletAdapter.signTransaction) {
+        alert("Wallet adapter doesn't support signing transaction");
+        throw new Error(
+          "The wallet adapter does not support signing transactions."
+        );
+      }
+      const signedTransaction = await walletAdapter.signTransaction(
+        transaction
+      );
+      const signature = await connection.sendRawTransaction(
+        signedTransaction.serialize(),
         {
           skipPreflight: false,
         }
       );
+
+      // const signature = await walletAdapter.sendTransaction(
+      //   transaction,
+      //   connection,
+      //   {
+      //     skipPreflight: false,
+      //   }
+      // );
       alert("success");
       console.log(signature);
       return { signature, mint: mint.publicKey };
