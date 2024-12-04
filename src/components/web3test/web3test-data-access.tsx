@@ -20,7 +20,10 @@ import { useCluster } from "../cluster/cluster-data-access";
 import { useAnchorProvider } from "../solana/solana-provider";
 import { useTransactionToast } from "../ui/ui-layout";
 import {
+  createAssociatedTokenAccountInstruction,
   createInitializeMintInstruction,
+  createMintToInstruction,
+  getAssociatedTokenAddress,
   MINT_SIZE,
   TOKEN_PROGRAM_ID,
 } from "@solana/spl-token";
@@ -137,6 +140,118 @@ export function useWeb3testProgram() {
     createMint,
   };
 }
+
+export const useCreateMintAndTokenAccount = () => {
+  const createMintAndTokenAccount = useMutation<
+    { signature: string; mint: PublicKey; associatedTokenAccount: PublicKey },
+    Error,
+    {
+      connection: Connection;
+      walletAdapter: WalletContextState;
+      tokenAmount: number | bigint | string;
+    }
+  >({
+    mutationKey: ["mintToken", "create"],
+    mutationFn: async ({ connection, walletAdapter, tokenAmount }) => {
+      if (!walletAdapter || !walletAdapter.connected) {
+        throw new Error("Wallet not connected. Please connect your wallet.");
+      }
+
+      const walletPublicKey = walletAdapter.publicKey;
+      if (!walletPublicKey) {
+        throw new Error("Wallet public key not available.");
+      }
+
+      const mint = Keypair.generate();
+      const associatedTokenAccount = await getAssociatedTokenAddress(
+        mint.publicKey,
+        walletPublicKey
+      );
+
+      const { blockhash } = await connection.getLatestBlockhash();
+      const transaction = new Transaction({
+        recentBlockhash: blockhash,
+        feePayer: walletPublicKey,
+      });
+
+      const mintRent = await connection.getMinimumBalanceForRentExemption(
+        MINT_SIZE
+      );
+      const decimals = 9;
+      const mintAmount = BigInt(tokenAmount) * BigInt(10 ** decimals);
+
+      transaction.add(
+        SystemProgram.createAccount({
+          fromPubkey: walletPublicKey,
+          newAccountPubkey: mint.publicKey,
+          lamports: mintRent,
+          space: MINT_SIZE,
+          programId: TOKEN_PROGRAM_ID,
+        }),
+        createInitializeMintInstruction(
+          mint.publicKey,
+          decimals,
+          walletPublicKey,
+          walletPublicKey
+        ),
+        createAssociatedTokenAccountInstruction(
+          walletPublicKey,
+          associatedTokenAccount,
+          walletPublicKey,
+          mint.publicKey
+        ),
+        createMintToInstruction(
+          mint.publicKey,
+          associatedTokenAccount,
+          walletPublicKey,
+          mintAmount
+        )
+      );
+
+      transaction.partialSign(mint);
+
+      if (!walletAdapter.signTransaction) {
+        alert("Wallet adapter doesn't support signing transaction");
+        throw new Error(
+          "The wallet adapter does not support signing transactions."
+        );
+      }
+      const signedTransaction = await walletAdapter.signTransaction(
+        transaction
+      );
+      const signature = await connection.sendRawTransaction(
+        signedTransaction.serialize(),
+        {
+          skipPreflight: false,
+        }
+      );
+      // const signature = await walletAdapter.sendTransaction(
+      //   transaction,
+      //   connection,
+      //   {
+      //     skipPreflight: false,
+      //     signers: [mint], // Added mint keypair as an external signer
+      //   }
+      // );
+
+      return { signature, mint: mint.publicKey, associatedTokenAccount };
+    },
+    onSuccess: ({ signature, mint, associatedTokenAccount }) => {
+      toast.success(`Token created successfully! Signature: ${signature}`);
+      console.log("Mint PublicKey:", mint.toBase58());
+      console.log(
+        "Associated Token Account:",
+        associatedTokenAccount.toBase58()
+      );
+      alert(associatedTokenAccount.toBase58());
+    },
+    onError: (error) => {
+      console.error("Error creating mint token:", error);
+      toast.error(`Failed to create mint token: ${error.message}`);
+    },
+  });
+  return { createMintAndTokenAccount };
+};
 
 export function useWeb3testProgramAccount({ account }: { account: PublicKey }) {
   const { cluster } = useCluster();

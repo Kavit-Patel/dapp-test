@@ -5,14 +5,14 @@ anchor_version = "0.30.1"
 resolution = true
 skip-lint = false
 
-[programs.localnet]
+[programs.devnet]
 web3test = "5V8uBmnvMZqxmnsemnW4FDKjhVqadAL6td7qvGzqySL8"
 
 [registry]
-url = "http://127.0.0.1:8899"
+url = "https://api.devnet.solana.com"
 
 [provider]
-cluster = "Localnet"
+cluster = "devnet"
 wallet = "~/.config/solana/id.json"
 
 [scripts]

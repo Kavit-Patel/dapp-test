@@ -5,14 +5,18 @@ import { useMemo, useState } from "react";
 import { ellipsify } from "../ui/ui-layout";
 import { ExplorerLink } from "../cluster/cluster-ui";
 import {
+  useCreateMintAndTokenAccount,
   useWeb3testProgram,
   useWeb3testProgramAccount,
 } from "./web3test-data-access";
 import { useConnection, useWallet } from "@solana/wallet-adapter-react";
+import { useRouter } from "next/navigation";
 
 export function Web3testCreate() {
   const { createMint } = useWeb3testProgram();
+  const { createMintAndTokenAccount } = useCreateMintAndTokenAccount();
   const { connection } = useConnection();
+  const router = useRouter();
   const wallet = useWallet();
   const [loading, setLoading] = useState<boolean>(false);
   const [tokenAmount, setTokenAmount] = useState<string>("");
@@ -32,9 +36,14 @@ export function Web3testCreate() {
         // onClick={() => createVestingAccount.mutateAsync({ companyName, mint })}
         onClick={async () => {
           setLoading(true);
-          createMint(connection, wallet, parseInt(tokenAmount)).finally(() =>
-            setLoading(false)
-          );
+          createMintAndTokenAccount
+            .mutateAsync({
+              connection,
+              walletAdapter: wallet,
+              tokenAmount: parseInt(tokenAmount),
+            })
+            // .then(() => router.push("/mint"))
+            .finally(() => setLoading(false));
         }}
         // disabled={createVestingAccount.isPending || !mint || !companyName}
       >
@@ -46,6 +55,7 @@ export function Web3testCreate() {
 
 export function Web3testList() {
   const { accounts, getProgramAccount } = useWeb3testProgram();
+  const { createMintAndTokenAccount } = useCreateMintAndTokenAccount();
 
   if (getProgramAccount.isLoading) {
     return <span className="loading loading-spinner loading-lg"></span>;
