@@ -6,13 +6,13 @@ resolution = true
 skip-lint = false
 
 [programs.devnet]
-web3test = "5V8uBmnvMZqxmnsemnW4FDKjhVqadAL6td7qvGzqySL8"
+web3test = "G7BkPkX43UiUW8gKNouosvNV5j4UqWPL59Pmr3DdngqR"
 
 [registry]
 url = "https://api.devnet.solana.com"
 
 [provider]
-cluster = "devnet"
+cluster = "Devnet"
 wallet = "~/.config/solana/id.json"
 
 [scripts]

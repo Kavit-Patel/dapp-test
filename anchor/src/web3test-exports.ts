@@ -21,7 +21,7 @@ export function getWeb3testProgramId(cluster: Cluster) {
     case "devnet":
     case "testnet":
       // This is the program ID for the Web3test program on devnet and testnet.
-      return new PublicKey("5V8uBmnvMZqxmnsemnW4FDKjhVqadAL6td7qvGzqySL8");
+      return new PublicKey("G7BkPkX43UiUW8gKNouosvNV5j4UqWPL59Pmr3DdngqR");
     case "mainnet-beta":
     default:
       return WEB3TEST_PROGRAM_ID;
